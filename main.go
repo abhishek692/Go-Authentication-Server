@@ -18,6 +18,8 @@ var jwtSecretKey = []byte("this-is-a-secret-key")
 var Users = map[string]string{
 	"user1": "password1",
 	"user2": "password2",
+	"abhishek":"soni",
+	"shiva":"shiva"
 }
 
 // Creating a struct to read the username and password from the request body
