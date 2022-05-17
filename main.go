@@ -16,10 +16,10 @@ var jwtSecretKey = []byte("this-is-a-secret-key")
 
 // we will only have two verified users on our server
 var Users = map[string]string{
-	"user1": "password1",
-	"user2": "password2",
-	"abhishek":"soni",
-	"shiva":"shiva"
+	"user1":    "password1",
+	"user2":    "password2",
+	"abhishek": "soni",
+	"shiva":    "shiva",
 }
 
 // Creating a struct to read the username and password from the request body
@@ -48,11 +48,12 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest) // this means there is an error in decoding the body, there is some problem with the request
+		json.NewEncoder(w).Encode("Error in decoding request body", err)
 		return
 	}
 
 	// Fetching the password from the map we created to store users
-	expectedPassword, ok := Users[Creds.Username]
+	expectedPassword, ok := Users[Creds.Username] // Creds is the variable in which the request's parameters are stored.
 
 	// if the password matches with the password we recieved in the request, we can move ahead
 	// if not matches, we can return "unauthorized"
@@ -63,6 +64,8 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// else we move ahead
+
+	// since the user has been authenticated, we can give them a JWT token.
 
 	// Declaring a expiration time of the toker
 
@@ -113,9 +116,10 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 // The welcome handler will
 
 func Welcome(w http.ResponseWriter, r *http.Request) {
-	// firstly we need to otains session cookie token from the requests cookies, which comes with every request
 
+	// firstly we need to obtain session cookie token from the requests cookies, which comes with every request
 	c, err := r.Cookie("token")
+
 	if err != nil {
 		if err == http.ErrNoCookie {
 			// cookie is not set, so return an unauthorized status
@@ -123,7 +127,7 @@ func Welcome(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// if there is any other kind of error, send a bad request stuts
+		// if there is any other kind of error, send a bad request status
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -137,7 +141,7 @@ func Welcome(w http.ResponseWriter, r *http.Request) {
 
 	// Parsing the JWT string and storing the result in claims
 	// we are passing the key in this parser method, so this method can give error as well
-	// if the token is invalid, if it has epired or if the signature doesn't match
+	// if the token is invalid, if it has expired or if the signature doesn't match
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		return jwtSecretKey, nil
 	})
@@ -202,6 +206,7 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 
 	if time.Unix(claims.ExpiresAt, 0).Sub(time.Now()) > 30*time.Second {
 		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode("Previous token is still valid.")
 		return
 	}
 
@@ -231,7 +236,7 @@ func main() {
 
 	http.HandleFunc("/api/signin", SignIn)   // handler to handle user's signing in
 	http.HandleFunc("/api/welcome", Welcome) // handler to display welcome messaage
-	http.HandleFunc("/api/refresh", Refresh) // handler to regresh the JWT key continuously
+	http.HandleFunc("/api/refresh", Refresh) // handler to refresh the JWT key continuously
 
 	log.Fatal(http.ListenAndServe(":8081", nil))
 }
